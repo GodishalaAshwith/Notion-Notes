@@ -34,17 +34,24 @@ docker rmi IMAGE_NAME  // remove images
 
 ```
 
-
-
-```
-
-docker run -it ubuntu
-// run ubuntu in interactive mode
-
-```
-
-
-
 Docker-Hub
 
 https://hub.docker.com/
+
+```
+
+// Port Binding
+
+docker run -p<host>:<container> IMAGE_NAME
+
+
+// Troubleshoot Commands
+
+docker logs CONT_ID
+
+//exec allows running commands in an already running container 
+docker exec -it CONT_ID /bin/bash
+docker exec -it CONT_ID /bin/sh
+
+```
+
