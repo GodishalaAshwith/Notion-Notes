@@ -9,31 +9,48 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: notion-sync
+  cancel-in-progress: true
+
 jobs:
   sync:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - uses: actions/setup-python@v5
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - run: pip install -r requirements.txt
+      - name: Install dependencies
+        run: pip install -r requirements.txt
 
-      - run: python sync.py
+      - name: Sync Notion
+        run: python sync.py
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           NOTION_PAGE_ID: ${{ secrets.NOTION_PAGE_ID }}
 
-      - run: |
-          git config user.name github-actions
-          git config user.email github-actions@github.com
+      - name: Commit and Push
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
 
           git add .
 
-          git diff --staged --quiet || \
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+
           git commit -m "Update from Notion"
 
-          git push
+          git pull --rebase origin main
+
+          git push origin main
