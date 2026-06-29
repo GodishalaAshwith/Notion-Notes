@@ -1,56 +1,24 @@
-name: Sync Notion
+- name: Sync latest changes
+  run: |
+    git pull origin main
 
-on:
-  workflow_dispatch:
+- name: Sync Notion
+  run: python sync.py
+  env:
+    NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+    NOTION_PAGE_ID: ${{ secrets.NOTION_PAGE_ID }}
 
-  schedule:
-    - cron: '0 */12 * * *'
+- name: Commit and Push
+  run: |
+    git config user.name "github-actions"
+    git config user.email "github-actions@github.com"
 
-permissions:
-  contents: write
+    git add README.md
 
-concurrency:
-  group: notion-sync
-  cancel-in-progress: true
+    if git diff --cached --quiet; then
+      echo "No changes."
+      exit 0
+    fi
 
-jobs:
-  sync:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-
-      - name: Sync Notion
-        run: python sync.py
-        env:
-          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
-          NOTION_PAGE_ID: ${{ secrets.NOTION_PAGE_ID }}
-
-      - name: Commit and Push
-        run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-
-          git add .
-
-          if git diff --cached --quiet; then
-            echo "No changes to commit."
-            exit 0
-          fi
-
-          git commit -m "Update from Notion"
-
-          git pull --rebase origin main
-
-          git push origin main
+    git commit -m "Update from Notion"
+    git push origin main
