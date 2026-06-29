@@ -1,24 +1,62 @@
-- name: Sync latest changes
-  run: |
-    git pull origin main
+name: Sync Notion
 
-- name: Sync Notion
-  run: python sync.py
-  env:
-    NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
-    NOTION_PAGE_ID: ${{ secrets.NOTION_PAGE_ID }}
+on:
+  workflow_dispatch:
 
-- name: Commit and Push
-  run: |
-    git config user.name "github-actions"
-    git config user.email "github-actions@github.com"
+  schedule:
+    - cron: "0 */12 * * *"
 
-    git add README.md
+permissions:
+  contents: write
 
-    if git diff --cached --quiet; then
-      echo "No changes."
-      exit 0
-    fi
+concurrency:
+  group: notion-sync
+  cancel-in-progress: true
 
-    git commit -m "Update from Notion"
-    git push origin main
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Sync Notion
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_PAGE_ID: ${{ secrets.NOTION_PAGE_ID }}
+        run: python sync.py
+
+      - name: Commit and Push
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+          git add README.md
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+
+          git commit -m "Update from Notion"
+
+          if git push origin main; then
+            echo "Push succeeded."
+            exit 0
+          fi
+
+          echo "Push failed. Pulling latest changes and retrying..."
+
+          git pull --rebase origin main
+          git push origin main
