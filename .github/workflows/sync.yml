@@ -37,7 +37,7 @@ jobs:
           NOTION_PAGE_ID: ${{ secrets.NOTION_PAGE_ID }}
         run: python sync.py
 
-      - name: Commit and Push
+      - name: Commit changes
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
@@ -51,12 +51,6 @@ jobs:
 
           git commit -m "Update from Notion"
 
-          if git push origin main; then
-            echo "Push succeeded."
-            exit 0
-          fi
-
-          echo "Push failed. Pulling latest changes and retrying..."
-
-          git pull --rebase origin main
-          git push origin main
+      - name: Push changes
+        run: |
+          git push origin HEAD:main
